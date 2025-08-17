@@ -4,9 +4,32 @@
   <meta charset="UTF-8" />
   <title>Wtero Admin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="/static/styles.css" rel="stylesheet" />
+  <style>
+    #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+    .toast { padding: 12px 18px; border-radius: 8px; color: white; font-weight: 600; font-size: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); opacity: 0; transform: translateX(100%); transition: all 0.4s ease; }
+    .toast.show { opacity: 1; transform: translateX(0); }
+    .toast.success { background-color: var(--success); }
+    .toast.error { background-color: var(--danger); }
+  </style>
 </head>
 <body>
+  <div id="toast-container"></div>
+
+  <dialog id="confirmDialog">
+    <div class="form" style="width: 400px; gap: 20px;">
+      <h3 id="confirmTitle">Are you sure?</h3>
+      <p id="confirmText" style="margin: 0; color: var(--muted);">This action cannot be undone.</p>
+      <div class="actions">
+        <button class="btn" id="confirmCancel">Cancel</button>
+        <button class="btn-danger" id="confirmAccept">Confirm</button>
+      </div>
+    </div>
+  </dialog>
+
   <div class="layout">
     <aside class="sidebar">
       <div class="brand">wtero-admin</div>
@@ -36,12 +59,53 @@
         window.location.href = "/ui/login";
       };
     }
+
+    // === THE CORRECTED FUNCTION ===
     function authFetch(url, options = {}) {
       const headers = options.headers || {};
       if (localStorage.getItem("token")) {
         headers["Authorization"] = "Bearer " + localStorage.getItem("token");
       }
+
+      // **THE FIX**: Check if the body is a plain object, and if so,
+      // set the Content-Type header and stringify the body.
+      if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData)) {
+        headers["Content-Type"] = "application/json";
+        options.body = JSON.stringify(options.body);
+      }
+      
       return fetch(url, { ...options, headers });
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => toast.classList.add('show'), 10);
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 500);
+      }, 4000);
+    }
+
+    const confirmDialog = document.getElementById('confirmDialog');
+    function showConfirm(title, text) {
+      document.getElementById('confirmTitle').textContent = title;
+      document.getElementById('confirmText').textContent = text;
+      confirmDialog.showModal();
+
+      return new Promise((resolve) => {
+        confirmDialog.querySelector('#confirmAccept').onclick = () => {
+          confirmDialog.close();
+          resolve(true);
+        };
+        confirmDialog.querySelector('#confirmCancel').onclick = () => {
+          confirmDialog.close();
+          resolve(false);
+        };
+      });
     }
   </script>
   {% block scripts %}{% endblock %}

@@ -1,22 +1,33 @@
 :root {
-  --bg: #0b1020;
-  --panel: #111831;
-  --panel-2: #0e152b;
-  --text: #e6ecff;
-  --muted: #9fb0d1;
+  --bg: #0f172a;
+  --panel: #1e293b;
+  --panel-2: #0f172a;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
   --primary: #3b82f6;
   --danger: #ef4444;
-  --stroke: #1f2a4a;
+  --success: #10b981;
+  --stroke: #334155;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 * { box-sizing: border-box; }
-html, body { margin:0; padding:0; height:100%; background:var(--bg); color:var(--text); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial; }
+html, body {
+  margin:0;
+  padding:0;
+  height:100%;
+  background:var(--bg);
+  color:var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
 .layout { display:flex; min-height:100vh; }
 .sidebar { width:240px; background: linear-gradient(180deg, var(--panel), var(--panel-2)); padding:20px; display:flex; flex-direction:column; gap:16px; border-right:1px solid var(--stroke); }
 .brand { font-weight:800; font-size:18px; letter-spacing:0.5px; margin-bottom:10px; }
 .sidebar nav { display:flex; flex-direction:column; gap:8px; }
-.sidebar nav a { color:var(--text); text-decoration:none; padding:10px 12px; border-radius:12px; background:transparent; border:1px solid transparent; }
+.sidebar nav a { color:var(--text); text-decoration:none; padding:10px 12px; border-radius:12px; background:transparent; border:1px solid transparent; transition: all 0.2s ease; }
 .sidebar nav a:hover { background:rgba(255,255,255,0.04); border-color:var(--stroke); }
 .mt-auto { margin-top:auto; }
 
@@ -27,34 +38,97 @@ html, body { margin:0; padding:0; height:100%; background:var(--bg); color:var(-
 
 .form { display:flex; flex-direction:column; gap:10px; }
 .form.inline { flex-direction:row; flex-wrap:wrap; gap:10px; align-items:center; }
+.form label { font-weight: 500; margin-bottom: -2px; font-size: 14px; }
 .form input, .form textarea, .form select {
   background: #0b1228; color: var(--text); border:1px solid var(--stroke); border-radius:12px; padding:10px 12px; outline:none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.form input:focus, .form textarea:focus, .form select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 .form textarea { resize: vertical; }
 .actions { display:flex; gap:10px; justify-content:flex-end; margin-top:6px; }
 
-.btn { background:#162143; border:1px solid var(--stroke); color:var(--text); padding:10px 12px; border-radius:12px; cursor:pointer; }
-.btn:hover { filter:brightness(1.1); }
-.btn-primary { background:var(--primary); border:1px solid #3a5bbb; color:white; }
-.btn-danger { background:var(--danger); border:1px solid #a22; color:white; }
+.btn, .btn-primary, .btn-danger {
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+.btn:hover, .btn-primary:hover, .btn-danger:hover {
+  filter: brightness(1.15);
+}
+.btn:active, .btn-primary:active, .btn-danger:active {
+  transform: scale(0.98);
+}
+.btn {
+  background: #334155;
+  color: var(--text);
+  border: 1px solid var(--stroke);
+}
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
+.btn-danger {
+  background: var(--danger);
+  color: white;
+}
 
 .toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+h1, h3 { margin:6px 0 12px; }
+h1 { font-size: 24px; font-weight: 700; }
+h3 { font-size: 20px; font-weight: 600; }
+
 .table { width:100%; border-collapse:collapse; background:var(--panel); border:1px solid var(--stroke); border-radius:14px; overflow:hidden; }
-.table th, .table td { border-bottom:1px solid var(--stroke); padding:10px 12px; text-align:left; vertical-align:top; }
-.table thead { background:#0e152b; }
-.table tr:hover td { background:#0c1330; }
+.table th, .table td { border-bottom:1px solid var(--stroke); padding:12px 14px; text-align:left; vertical-align:middle; font-size: 14px; }
+.table thead { background:#0e152b; color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+.table tr:hover td { background:#283548; }
+.table td .btn, .table td .btn-danger { padding: 6px 12px; font-size: 13px; }
+
+.links-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.link-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 6px;
+  background-color: transparent;
+  transition: background-color 0.2s ease;
+}
+.link-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+.link-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: var(--muted);
+  transition: fill 0.2s ease;
+}
+.link-btn:hover svg {
+  fill: var(--text);
+}
+
 .mt { margin-top:18px; }
 
 .grid-3 { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:16px; }
 .card { background:var(--panel); border:1px solid var(--stroke); border-radius:14px; padding:18px; }
-.stat { font-size:28px; font-weight:800; }
-.label { color:var(--muted); margin-top:6px; }
+.stat { font-size:32px; font-weight:800; }
+.label { color:var(--muted); margin-top:6px; font-weight: 500; }
 
 .clip { max-width:380px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .avatar { width:44px; height:44px; border-radius:50%; object-fit:cover; border:1px solid var(--stroke); }
 .thumb { width:72px; height:48px; object-fit:cover; border-radius:10px; border:1px solid var(--stroke); }
 
-dialog { border:none; border-radius:16px; padding:0; }
-dialog::backdrop { background: rgba(0,0,0,0.5); }
-dialog .form { padding:18px; background:var(--panel); border:1px solid var(--stroke); border-radius:16px; width:520px; }
-h1, h3 { margin:6px 0 12px; }
+dialog { border:none; border-radius:16px; padding:0; background: var(--panel); color: var(--text); }
+dialog::backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+dialog .form { padding:24px; border:1px solid var(--stroke); border-radius:16px; width:520px; }

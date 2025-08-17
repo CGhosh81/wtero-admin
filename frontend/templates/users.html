@@ -10,17 +10,14 @@
       <option value="user">user</option>
       <option value="admin">admin</option>
     </select>
-    <button class="btn-primary" type="submit">Add</button>
+    <button class="btn-primary" type="submit">Add User</button>
   </form>
-
-  <p id="addError" style="color:red; display:none;"></p>
 
   <table class="table mt">
     <thead><tr><th>Username</th><th>Role</th><th>Actions</th></tr></thead>
     <tbody id="usersBody"></tbody>
   </table>
 </div>
-
 <p id="notAdminMsg" style="color:red; display:none;">
   ❌ You must be an admin to manage users.
 </p>
@@ -31,54 +28,63 @@
   ensureAuth();
 
   async function getCurrentUser() {
-    const res = await authFetch("/auth/me");
-    if (!res.ok) return null;
-    return await res.json();
+    try {
+      const res = await authFetch("/auth/me");
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
   }
 
   async function loadUsers() {
-    // 🔧 Removed `?limit=200` to avoid 422 error
-    const res = await authFetch("/users");
-    if (!res.ok) {
-      alert("❌ You must be admin to view users.");
-      return;
+    try {
+      // Add { cache: "no-cache" } to always get the latest user list
+      const res = await authFetch("/users", { cache: "no-cache" });
+      if (!res.ok) {
+        showToast("You must be an admin to view users.", "error");
+        return;
+      }
+      const users = await res.json();
+      const body = document.getElementById("usersBody");
+      body.innerHTML = "";
+      users.forEach(u => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${u.username}</td>
+          <td>${u.role}</td>
+          <td>
+            ${u.username !== "admin" ? `<button class="btn-danger" data-del="${u.username}">Delete</button>` : ""}
+          </td>
+        `;
+        body.appendChild(tr);
+      });
+    } catch {
+      showToast("Failed to load users.", "error");
     }
-    const users = await res.json();
-    const body = document.getElementById("usersBody");
-    body.innerHTML = "";
-    users.forEach(u => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${u.username}</td>
-        <td>${u.role}</td>
-        <td>
-          ${u.username !== "admin" ? `<button class="btn-danger" data-del="${u.username}">Delete</button>` : ""}
-        </td>
-      `;
-      body.appendChild(tr);
-    });
   }
 
-  // permanent delete listener
   document.getElementById("usersBody").addEventListener("click", async (e) => {
     const username = e.target.dataset.del;
     if (!username) return;
-    if (confirm("Delete user " + username + "?")) {
+    const confirmed = await showConfirm("Delete User?", `Are you sure you want to delete user '${username}'?`);
+    if (confirmed) {
       await authFetch(`/users/${username}`, { method: "DELETE" });
-      loadUsers();
+      showToast("User deleted successfully!");
+      await loadUsers();
     }
   });
 
   async function init() {
     const user = await getCurrentUser();
     if (!user) {
-      window.location.href = "/login";
+      window.location.href = "/ui/login";
       return;
     }
 
     if (user.role === "admin") {
       document.getElementById("adminSection").style.display = "block";
-      loadUsers();
+      await loadUsers();
     } else {
       document.getElementById("notAdminMsg").style.display = "block";
     }
@@ -86,29 +92,37 @@
 
   document.getElementById("addUserForm").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const errEl = document.getElementById("addError");
-    errEl.style.display = "none";
+    
+    // === THE FIX ===
+    // Get a direct reference to the form element itself.
+    const formElement = document.getElementById("addUserForm");
+    const formData = new FormData(formElement);
+    const username = formData.get("username");
+    const password = formData.get("password");
+    const role = formData.get("role");
 
-    const form = new FormData(e.currentTarget);
-    const username = form.get("username");
-    const password = form.get("password");
-    const role = form.get("role");
+    try {
+      const res = await authFetch("/users/add", {
+        method: "POST",
+        body: { username, password, role }
+      });
 
-    const res = await authFetch("/users/add", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password, role })
-    });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Unknown error");
+      }
 
-    if (!res.ok) { 
-      const err = await res.json().catch(() => ({}));
-      errEl.textContent = "❌ Add failed: " + (err.detail || "unknown error");
-      errEl.style.display = "block";
-      return; 
+      showToast("User added successfully!");
+      
+      // Use the stable reference to reset the form. This will not fail.
+      formElement.reset(); 
+      
+      // Refresh the user list to show the new user.
+      await loadUsers();
+
+    } catch (error) {
+      showToast(`Add failed: ${error.message}`, "error");
     }
-
-    e.currentTarget.reset();
-    loadUsers();  // refresh list
   });
 
   init();

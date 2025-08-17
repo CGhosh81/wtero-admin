@@ -1,17 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="center-card">
-  <h1>Login</h1>
+  <h1>Admin Login</h1>
   <form id="loginForm" class="form">
     <label>Username</label>
     <input name="username" placeholder="admin" required />
     <label>Password</label>
     <input type="password" name="password" placeholder="admin" required />
-    <button class="btn-primary" type="submit">Login</button>
+    <div class="actions" style="justify-content: stretch; margin-top: 10px;">
+      <button class="btn-primary" type="submit" style="flex-grow: 1;">Login</button>
+    </div>
   </form>
-  <p class="muted">Default admin: <code>admin / admin</code></p>
+  <p class="muted" style="text-align: center; margin-top: 16px;">Default: <code>admin / admin</code></p>
 </div>
 {% endblock %}
+
 {% block scripts %}
 <script>
   // hide sidebar on login page
@@ -34,7 +37,7 @@
       localStorage.setItem("token", data.access_token);
       window.location.href = "/ui/dashboard";
     } catch (err) {
-      alert("Login failed");
+      showToast("Login failed: Invalid credentials", "error");
     }
   });
 </script>

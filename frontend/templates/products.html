@@ -21,14 +21,14 @@
     <label>Title</label><input name="title" required />
     <label>Category</label><input name="category" required />
     <label>Description</label><textarea name="description" rows="3" required></textarea>
-    <label>Technologies (comma or JSON array)</label><input name="technologies" placeholder='["FastAPI","MongoDB"] or FastAPI, MongoDB' />
+    <label>Technologies (comma-separated)</label><input name="technologies" placeholder='FastAPI, MongoDB, Vue' />
     <label>GitHub Link</label><input name="githubLink" type="url" />
     <label>Live Link</label><input name="liveLink" type="url" />
-    <label><input type="checkbox" name="comingSoon" /> Coming Soon</label>
+    <label style="display: flex; align-items: center; gap: 8px;"><input type="checkbox" name="comingSoon" /> Coming Soon</label>
     <label>Image</label><input type="file" name="image" accept="image/*" />
     <div class="actions">
-      <button class="btn-primary" type="submit">Save</button>
       <button class="btn" type="button" id="prodCancel">Cancel</button>
+      <button class="btn-primary" type="submit">Save</button>
     </div>
   </form>
 </dialog>
@@ -43,12 +43,6 @@
   const openBtn = document.getElementById("openCreate");
   const cancelBtn = document.getElementById("prodCancel");
   const titleEl = document.getElementById("prodTitle");
-
-  function csvOrJson(value) {
-    if (!value) return "";
-    value = value.trim();
-    return value;
-  }
 
   async function loadProducts() {
     const res = await authFetch("/products?limit=100");
@@ -105,8 +99,10 @@
     }
 
     if (e.target.dataset.del) {
-      if (confirm("Delete this product?")) {
+      const confirmed = await showConfirm("Delete Product?", "This action cannot be undone.");
+      if (confirmed) {
         await authFetch(`/products/${id}`, { method: "DELETE" });
+        showToast("Product deleted!");
         loadProducts();
       }
     }
@@ -117,16 +113,9 @@
     const fd = new FormData(form);
     const id = fd.get("id");
 
-    // normalize technologies: pass as comma-separated or JSON string to backend which parses both
-    if (fd.get("technologies")) {
-      const raw = fd.get("technologies");
-      fd.set("technologies", csvOrJson(raw));
-    }
-
-    // checkbox normalization (FormData sends "on")
     if (fd.get("comingSoon") === "on") fd.set("comingSoon", "true");
+    else fd.set("comingSoon", "false");
 
-    // don't send empty file
     if (!fd.get("image") || (fd.get("image") instanceof File && !fd.get("image").name)) {
       fd.delete("image");
     }
@@ -135,9 +124,10 @@
     const method = id ? "PUT" : "POST";
     const res = await authFetch(url, { method, body: fd });
     if (!res.ok) {
-      alert("Save failed");
+      showToast("Save failed", "error");
       return;
     }
+    showToast("Product saved successfully!");
     modal.close();
     loadProducts();
   });

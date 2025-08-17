@@ -14,7 +14,6 @@
   <tbody></tbody>
 </table>
 
-<!-- Create/Edit Modal -->
 <dialog id="reviewModal">
   <form id="reviewForm" method="dialog" class="form">
     <h3 id="modalTitle">Create Review</h3>
@@ -26,8 +25,8 @@
     <label>Text</label><textarea name="text" rows="3" required></textarea>
     <label>Avatar</label><input type="file" name="avatar" accept="image/*" />
     <div class="actions">
-      <button class="btn-primary" id="saveBtn" type="submit">Save</button>
       <button class="btn" type="button" id="cancelBtn">Cancel</button>
+      <button class="btn-primary" id="saveBtn" type="submit">Save</button>
     </div>
   </form>
 </dialog>
@@ -92,8 +91,10 @@
     }
 
     if (e.target.dataset.del) {
-      if (confirm("Delete this review?")) {
+      const confirmed = await showConfirm("Delete Review?", "This will permanently remove the review.");
+      if (confirmed) {
         await authFetch(`/reviews/${id}`, { method: "DELETE" });
+        showToast("Review deleted!");
         loadReviews();
       }
     }
@@ -103,7 +104,6 @@
     e.preventDefault();
     const fd = new FormData(form);
     const id = fd.get("id");
-    // when editing without changing file, omit avatar if empty
     if (!fd.get("avatar") || (fd.get("avatar") instanceof File && !fd.get("avatar").name)) {
       fd.delete("avatar");
     }
@@ -113,9 +113,10 @@
 
     const res = await authFetch(url, { method, body: fd });
     if (!res.ok) {
-      alert("Save failed");
+      showToast("Save failed", "error");
       return;
     }
+    showToast("Review saved successfully!");
     modal.close();
     loadReviews();
   });
