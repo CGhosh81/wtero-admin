@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Dashboard</h1>
+<div class="grid-3">
+  <div class="card"><div class="stat" id="statProducts">0</div><div class="label">Products</div></div>
+  <div class="card"><div class="stat" id="statReviews">0</div><div class="label">Reviews</div></div>
+  <div class="card"><div class="stat" id="statUsers">0</div><div class="label">Users</div></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  ensureAuth();
+  authFetch("/stats").then(r => r.json()).then(s => {
+    document.getElementById("statProducts").textContent = s.products;
+    document.getElementById("statReviews").textContent = s.reviews;
+    document.getElementById("statUsers").textContent = s.users;
+  }).catch(()=>{});
+</script>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="center-card">
+  <h1>Login</h1>
+  <form id="loginForm" class="form">
+    <label>Username</label>
+    <input name="username" placeholder="admin" required />
+    <label>Password</label>
+    <input type="password" name="password" placeholder="admin" required />
+    <button class="btn-primary" type="submit">Login</button>
+  </form>
+  <p class="muted">Default admin: <code>admin / admin</code></p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  // hide sidebar on login page
+  document.querySelector(".sidebar").style.display = "none";
+
+  document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    const body = new URLSearchParams();
+    body.append("username", form.get("username"));
+    body.append("password", form.get("password"));
+    try {
+      const res = await fetch("/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body,
+      });
+      if (!res.ok) throw new Error("Invalid credentials");
+      const data = await res.json();
+      localStorage.setItem("token", data.access_token);
+      window.location.href = "/ui/dashboard";
+    } catch (err) {
+      alert("Login failed");
+    }
+  });
+</script>
+{% endblock %}

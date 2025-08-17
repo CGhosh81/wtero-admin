@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Wtero Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="/static/styles.css" rel="stylesheet" />
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">wtero-admin</div>
+      <nav>
+        <a href="/ui/dashboard">Dashboard</a>
+        <a href="/ui/reviews">Reviews</a>
+        <a href="/ui/products">Products</a>
+        <a href="/ui/users">Users</a>
+      </nav>
+      <button id="logoutBtn" class="btn-danger mt-auto">Logout</button>
+    </aside>
+    <main class="content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <script>
+    const token = localStorage.getItem("token");
+    function ensureAuth(redirect = true) {
+      if (!token && redirect) window.location.href = "/ui/login";
+      return !!token;
+    }
+    const logoutBtn = document.getElementById("logoutBtn");
+    if (logoutBtn) {
+      logoutBtn.onclick = () => {
+        localStorage.removeItem("token");
+        window.location.href = "/ui/login";
+      };
+    }
+    function authFetch(url, options = {}) {
+      const headers = options.headers || {};
+      if (localStorage.getItem("token")) {
+        headers["Authorization"] = "Bearer " + localStorage.getItem("token");
+      }
+      return fetch(url, { ...options, headers });
+    }
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

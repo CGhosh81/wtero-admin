@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="toolbar">
+  <h1>Products</h1>
+  <button id="openCreate" class="btn-primary">+ New Product</button>
+</div>
+
+<table class="table" id="productsTable">
+  <thead>
+    <tr>
+      <th>Title</th><th>Category</th><th>Tech</th><th>Coming Soon</th><th>Links</th><th>Image</th><th>Actions</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<dialog id="prodModal">
+  <form id="prodForm" method="dialog" class="form">
+    <h3 id="prodTitle">Create Product</h3>
+    <input type="hidden" name="id" />
+    <label>Title</label><input name="title" required />
+    <label>Category</label><input name="category" required />
+    <label>Description</label><textarea name="description" rows="3" required></textarea>
+    <label>Technologies (comma or JSON array)</label><input name="technologies" placeholder='["FastAPI","MongoDB"] or FastAPI, MongoDB' />
+    <label>GitHub Link</label><input name="githubLink" type="url" />
+    <label>Live Link</label><input name="liveLink" type="url" />
+    <label><input type="checkbox" name="comingSoon" /> Coming Soon</label>
+    <label>Image</label><input type="file" name="image" accept="image/*" />
+    <div class="actions">
+      <button class="btn-primary" type="submit">Save</button>
+      <button class="btn" type="button" id="prodCancel">Cancel</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  ensureAuth();
+  const tbody = document.querySelector("#productsTable tbody");
+  const modal = document.getElementById("prodModal");
+  const form = document.getElementById("prodForm");
+  const openBtn = document.getElementById("openCreate");
+  const cancelBtn = document.getElementById("prodCancel");
+  const titleEl = document.getElementById("prodTitle");
+
+  function csvOrJson(value) {
+    if (!value) return "";
+    value = value.trim();
+    return value;
+  }
+
+  async function loadProducts() {
+    const res = await authFetch("/products?limit=100");
+    const data = await res.json();
+    tbody.innerHTML = "";
+    data.forEach(p => {
+      const tech = Array.isArray(p.technologies) ? p.technologies.join(", ") : "";
+      const img = p.image ? `<img class="thumb" src="data:image/*;base64,${p.image}"/>` : "";
+      const links = `
+        ${p.githubLink ? `<a href="${p.githubLink}" target="_blank">GitHub</a>` : ""}
+        ${p.liveLink ? ` | <a href="${p.liveLink}" target="_blank">Live</a>` : ""}
+      `;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${p.title}</td>
+        <td>${p.category}</td>
+        <td>${tech}</td>
+        <td>${p.comingSoon ? "Yes" : "No"}</td>
+        <td>${links}</td>
+        <td>${img}</td>
+        <td>
+          <button class="btn" data-edit="${p.id}">Edit</button>
+          <button class="btn-danger" data-del="${p.id}">Delete</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  openBtn.onclick = () => {
+    form.reset();
+    form.id.value = "";
+    titleEl.textContent = "Create Product";
+    modal.showModal();
+  };
+  cancelBtn.onclick = () => modal.close();
+
+  tbody.addEventListener("click", async (e) => {
+    const id = e.target.dataset.edit || e.target.dataset.del;
+    if (!id) return;
+
+    if (e.target.dataset.edit) {
+      const r = await (await authFetch(`/products/${id}`)).json();
+      form.id.value = r.id;
+      form.title.value = r.title;
+      form.category.value = r.category;
+      form.description.value = r.description;
+      form.technologies.value = (r.technologies || []).join(", ");
+      form.githubLink.value = r.githubLink || "";
+      form.liveLink.value = r.liveLink || "";
+      form.comingSoon.checked = !!r.comingSoon;
+      titleEl.textContent = "Edit Product";
+      modal.showModal();
+    }
+
+    if (e.target.dataset.del) {
+      if (confirm("Delete this product?")) {
+        await authFetch(`/products/${id}`, { method: "DELETE" });
+        loadProducts();
+      }
+    }
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const id = fd.get("id");
+
+    // normalize technologies: pass as comma-separated or JSON string to backend which parses both
+    if (fd.get("technologies")) {
+      const raw = fd.get("technologies");
+      fd.set("technologies", csvOrJson(raw));
+    }
+
+    // checkbox normalization (FormData sends "on")
+    if (fd.get("comingSoon") === "on") fd.set("comingSoon", "true");
+
+    // don't send empty file
+    if (!fd.get("image") || (fd.get("image") instanceof File && !fd.get("image").name)) {
+      fd.delete("image");
+    }
+
+    const url = id ? `/products/${id}` : `/products`;
+    const method = id ? "PUT" : "POST";
+    const res = await authFetch(url, { method, body: fd });
+    if (!res.ok) {
+      alert("Save failed");
+      return;
+    }
+    modal.close();
+    loadProducts();
+  });
+
+  loadProducts();
+</script>
+{% endblock %}
