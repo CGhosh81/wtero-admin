@@ -23,9 +23,30 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.brand { 
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight:800; 
+  font-size:18px; 
+  letter-spacing:0.5px; 
+  margin-bottom:10px; 
+}
+
+
+/* === UPDATED STYLE FOR PNG LOGO === */
+.brand img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%; /* This makes it a circle */
+  background-color: var(--stroke);
+  object-fit: cover;
+}
+
+
 .layout { display:flex; min-height:100vh; }
 .sidebar { width:240px; background: linear-gradient(180deg, var(--panel), var(--panel-2)); padding:20px; display:flex; flex-direction:column; gap:16px; border-right:1px solid var(--stroke); }
-.brand { font-weight:800; font-size:18px; letter-spacing:0.5px; margin-bottom:10px; }
+.brand { font-weight:800; font-size:22px; letter-spacing:0.5px; margin-bottom:10px; color:var(--primary); }
 .sidebar nav { display:flex; flex-direction:column; gap:8px; }
 .sidebar nav a { color:var(--text); text-decoration:none; padding:10px 12px; border-radius:12px; background:transparent; border:1px solid transparent; transition: all 0.2s ease; }
 .sidebar nav a:hover { background:rgba(255,255,255,0.04); border-color:var(--stroke); }
