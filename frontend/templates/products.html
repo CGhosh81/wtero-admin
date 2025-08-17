@@ -8,7 +8,13 @@
 <table class="table" id="productsTable">
   <thead>
     <tr>
-      <th>Title</th><th>Category</th><th>Tech</th><th>Coming Soon</th><th>Links</th><th>Image</th><th>Actions</th>
+      <th style="width: 20%;">Title</th>
+      <th style="width: 15%;">Category</th>
+      <th>Tech</th>
+      <th style="width: 10%;">Coming Soon</th>
+      <th style="width: 10%;">Links</th>
+      <th style="width: 10%;">Image</th>
+      <th style="width: 15%;">Actions</th>
     </tr>
   </thead>
   <tbody></tbody>
@@ -44,6 +50,9 @@
   const cancelBtn = document.getElementById("prodCancel");
   const titleEl = document.getElementById("prodTitle");
 
+  const githubIcon = `<svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>`;
+  const liveLinkIcon = `<svg viewBox="0 0 24 24"><path d="M10.59 13.41c.41.39.41 1.03 0 1.42-.39.39-1.03.39-1.42 0a5.003 5.003 0 0 1 0-7.07l3.54-3.54a5.003 5.003 0 0 1 7.07 0 5.003 5.003 0 0 1 0 7.07l-1.49 1.49c.01-.82-.12-1.64-.4-2.42l.47-.48a2.982 2.982 0 0 0 0-4.24 2.982 2.982 0 0 0-4.24 0l-3.53 3.53a2.982 2.982 0 0 0 0 4.24m2.82-4.24c.39-.39 1.03-.39 1.42 0a5.003 5.003 0 0 1 0 7.07l-3.54 3.54a5.003 5.003 0 0 1-7.07 0 5.003 5.003 0 0 1 0-7.07l1.49-1.49c-.01.82.12 1.64.4 2.43l-.47.47a2.982 2.982 0 0 0 0 4.24 2.982 2.982 0 0 0 4.24 0l3.53-3.53a2.982 2.982 0 0 0 0-4.24z"/></svg>`;
+
   async function loadProducts() {
     const res = await authFetch("/products?limit=100");
     const data = await res.json();
@@ -51,17 +60,23 @@
     data.forEach(p => {
       const tech = Array.isArray(p.technologies) ? p.technologies.join(", ") : "";
       const img = p.image ? `<img class="thumb" src="data:image/*;base64,${p.image}"/>` : "";
-      const links = `
-        ${p.githubLink ? `<a href="${p.githubLink}" target="_blank">GitHub</a>` : ""}
-        ${p.liveLink ? ` | <a href="${p.liveLink}" target="_blank">Live</a>` : ""}
-      `;
+      
+      let linksHTML = '<div class="links-container">';
+      if (p.githubLink) {
+        linksHTML += `<a href="${p.githubLink}" target="_blank" class="link-btn" title="GitHub">${githubIcon}</a>`;
+      }
+      if (p.liveLink) {
+        linksHTML += `<a href="${p.liveLink}" target="_blank" class="link-btn" title="Live Link">${liveLinkIcon}</a>`;
+      }
+      linksHTML += '</div>';
+
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${p.title}</td>
-        <td>${p.category}</td>
-        <td>${tech}</td>
+        <td class="truncate" title="${p.title}">${p.title}</td>
+        <td class="truncate" title="${p.category}">${p.category}</td>
+        <td class="truncate" title="${tech}">${tech}</td>
         <td>${p.comingSoon ? "Yes" : "No"}</td>
-        <td>${links}</td>
+        <td>${linksHTML}</td>
         <td>${img}</td>
         <td>
           <button class="btn" data-edit="${p.id}">Edit</button>
@@ -71,7 +86,7 @@
       tbody.appendChild(tr);
     });
   }
-
+  
   openBtn.onclick = () => {
     form.reset();
     form.id.value = "";
@@ -81,10 +96,12 @@
   cancelBtn.onclick = () => modal.close();
 
   tbody.addEventListener("click", async (e) => {
-    const id = e.target.dataset.edit || e.target.dataset.del;
-    if (!id) return;
+    const targetButton = e.target.closest('button[data-edit], button[data-del]');
+    if (!targetButton) return;
 
-    if (e.target.dataset.edit) {
+    const id = targetButton.dataset.edit || targetButton.dataset.del;
+
+    if (targetButton.dataset.edit) {
       const r = await (await authFetch(`/products/${id}`)).json();
       form.id.value = r.id;
       form.title.value = r.title;
@@ -98,7 +115,7 @@
       modal.showModal();
     }
 
-    if (e.target.dataset.del) {
+    if (targetButton.dataset.del) {
       const confirmed = await showConfirm("Delete Product?", "This action cannot be undone.");
       if (confirmed) {
         await authFetch(`/products/${id}`, { method: "DELETE" });

@@ -14,7 +14,8 @@
     document.getElementById("statProducts").textContent = s.products;
     document.getElementById("statReviews").textContent = s.reviews;
     document.getElementById("statUsers").textContent = s.users;
-  }).catch(()=>{});
+  }).catch(()=>{
+    showToast("Could not load dashboard stats.", "error");
+  });
 </script>
 {% endblock %}
-

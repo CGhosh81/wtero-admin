@@ -85,7 +85,7 @@ h1, h3 { margin:6px 0 12px; }
 h1 { font-size: 24px; font-weight: 700; }
 h3 { font-size: 20px; font-weight: 600; }
 
-.table { width:100%; border-collapse:collapse; background:var(--panel); border:1px solid var(--stroke); border-radius:14px; overflow:hidden; }
+.table { width:100%; border-collapse:collapse; background:var(--panel); border:1px solid var(--stroke); border-radius:14px; overflow:hidden; table-layout: fixed; }
 .table th, .table td { border-bottom:1px solid var(--stroke); padding:12px 14px; text-align:left; vertical-align:middle; font-size: 14px; }
 .table thead { background:#0e152b; color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
 .table tr:hover td { background:#283548; }
@@ -116,6 +116,15 @@ h3 { font-size: 20px; font-weight: 600; }
 }
 .link-btn:hover svg {
   fill: var(--text);
+}
+
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.truncate[title]:hover {
+  cursor: help;
 }
 
 .mt { margin-top:18px; }

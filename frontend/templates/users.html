@@ -39,7 +39,6 @@
 
   async function loadUsers() {
     try {
-      // Add { cache: "no-cache" } to always get the latest user list
       const res = await authFetch("/users", { cache: "no-cache" });
       if (!res.ok) {
         showToast("You must be an admin to view users.", "error");
@@ -93,8 +92,6 @@
   document.getElementById("addUserForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     
-    // === THE FIX ===
-    // Get a direct reference to the form element itself.
     const formElement = document.getElementById("addUserForm");
     const formData = new FormData(formElement);
     const username = formData.get("username");
@@ -113,11 +110,7 @@
       }
 
       showToast("User added successfully!");
-      
-      // Use the stable reference to reset the form. This will not fail.
       formElement.reset(); 
-      
-      // Refresh the user list to show the new user.
       await loadUsers();
 
     } catch (error) {

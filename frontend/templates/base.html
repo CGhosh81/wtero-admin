@@ -60,15 +60,12 @@
       };
     }
 
-    // === THE CORRECTED FUNCTION ===
     function authFetch(url, options = {}) {
       const headers = options.headers || {};
       if (localStorage.getItem("token")) {
         headers["Authorization"] = "Bearer " + localStorage.getItem("token");
       }
 
-      // **THE FIX**: Check if the body is a plain object, and if so,
-      // set the Content-Type header and stringify the body.
       if (options.body && typeof options.body === 'object' && !(options.body instanceof FormData)) {
         headers["Content-Type"] = "application/json";
         options.body = JSON.stringify(options.body);
@@ -97,14 +94,18 @@
       confirmDialog.showModal();
 
       return new Promise((resolve) => {
-        confirmDialog.querySelector('#confirmAccept').onclick = () => {
+        const acceptBtn = confirmDialog.querySelector('#confirmAccept');
+        const cancelBtn = confirmDialog.querySelector('#confirmCancel');
+        
+        const closeAndResolve = (value) => {
           confirmDialog.close();
-          resolve(true);
+          acceptBtn.replaceWith(acceptBtn.cloneNode(true));
+          cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+          resolve(value);
         };
-        confirmDialog.querySelector('#confirmCancel').onclick = () => {
-          confirmDialog.close();
-          resolve(false);
-        };
+
+        acceptBtn.addEventListener('click', () => closeAndResolve(true), { once: true });
+        cancelBtn.addEventListener('click', () => closeAndResolve(false), { once: true });
       });
     }
   </script>

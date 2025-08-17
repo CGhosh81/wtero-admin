@@ -4,16 +4,20 @@
   <h1>Reviews</h1>
   <button id="openCreate" class="btn-primary">+ New Review</button>
 </div>
-
 <table class="table" id="reviewsTable">
   <thead>
     <tr>
-      <th>Name</th><th>Company</th><th>Role</th><th>Rating</th><th>Text</th><th>Avatar</th><th>Actions</th>
+      <th style="width: 20%;">Name</th>
+      <th style="width: 20%;">Company</th>
+      <th style="width: 15%;">Role</th>
+      <th style="width: 10%;">Rating</th>
+      <th>Text</th>
+      <th style="width: 10%;">Avatar</th>
+      <th style="width: 15%;">Actions</th>
     </tr>
   </thead>
   <tbody></tbody>
 </table>
-
 <dialog id="reviewModal">
   <form id="reviewForm" method="dialog" class="form">
     <h3 id="modalTitle">Create Review</h3>
@@ -26,7 +30,7 @@
     <label>Avatar</label><input type="file" name="avatar" accept="image/*" />
     <div class="actions">
       <button class="btn" type="button" id="cancelBtn">Cancel</button>
-      <button class="btn-primary" id="saveBtn" type="submit">Save</button>
+      <button class="btn-primary" type="submit">Save</button>
     </div>
   </form>
 </dialog>
@@ -49,11 +53,11 @@
     data.forEach(r => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${r.name}</td>
-        <td>${r.company}</td>
-        <td>${r.role}</td>
+        <td class="truncate" title="${r.name}">${r.name}</td>
+        <td class="truncate" title="${r.company}">${r.company}</td>
+        <td class="truncate" title="${r.role}">${r.role}</td>
         <td>${r.rating}</td>
-        <td class="clip">${r.text}</td>
+        <td class="truncate" title="${r.text}">${r.text}</td>
         <td>${r.avatar ? '<img class="avatar" src="data:image/*;base64,'+r.avatar+'"/>' : ''}</td>
         <td>
           <button class="btn" data-edit="${r.id}">Edit</button>
@@ -74,10 +78,13 @@
   cancelBtn.onclick = () => modal.close();
 
   tbody.addEventListener("click", async (e) => {
-    const id = e.target.dataset.edit || e.target.dataset.del;
+    const target = e.target.closest('button');
+    if (!target) return;
+
+    const id = target.dataset.edit || target.dataset.del;
     if (!id) return;
 
-    if (e.target.dataset.edit) {
+    if (target.dataset.edit) {
       const res = await authFetch(`/reviews/${id}`);
       const r = await res.json();
       form.id.value = r.id;
@@ -90,7 +97,7 @@
       modal.showModal();
     }
 
-    if (e.target.dataset.del) {
+    if (target.dataset.del) {
       const confirmed = await showConfirm("Delete Review?", "This will permanently remove the review.");
       if (confirmed) {
         await authFetch(`/reviews/${id}`, { method: "DELETE" });

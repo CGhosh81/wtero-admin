@@ -11,13 +11,12 @@
       <button class="btn-primary" type="submit" style="flex-grow: 1;">Login</button>
     </div>
   </form>
-  <p class="muted" style="text-align: center; margin-top: 16px;">Default: <code>admin / admin</code></p>
+  <!-- <p class="muted" style="text-align: center; margin-top: 16px;">Default: <code>admin / admin</code></p> -->
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-  // hide sidebar on login page
   document.querySelector(".sidebar").style.display = "none";
 
   document.getElementById("loginForm").addEventListener("submit", async (e) => {
