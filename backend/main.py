@@ -7,6 +7,10 @@ from backend.database import init_db
 from backend import auth
 from backend.routes import users, reviews, products
 from backend.database import db
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
+from fastapi.responses import RedirectResponse
+import json
 
 app = FastAPI(title="Wtero Admin Panel (FastAPI + MongoDB)")
 
@@ -32,7 +36,8 @@ templates = Jinja2Templates(directory="frontend/templates")
 @app.get("/")
 async def root():
     # redirect to /ui/login from the browser (or just open it manually)
-    return {"msg": "Wtero Admin API. Visit /ui/login for the admin UI."}
+    return RedirectResponse(url="/ui/login")
+    # return {"msg": "Wtero Admin API. Visit /ui/login for the admin UI."}
 
 @app.get("/ui/login")
 async def ui_login(request: Request):
@@ -53,6 +58,18 @@ async def ui_products(request: Request):
 @app.get("/ui/users")
 async def ui_users(request: Request):
     return templates.TemplateResponse("users.html", {"request": request})
+
+@app.get("/api/products")
+async def api_products():
+    products_cursor = db["products"].find({}, {"_id": 0})
+    products = await products_cursor.to_list(length=1000)
+    return JSONResponse(content=jsonable_encoder({"products": products}))
+
+@app.get("/api/reviews")
+async def api_reviews():
+    reviews_cursor = db["reviews"].find({}, {"_id": 0})
+    reviews = await reviews_cursor.to_list(length=1000)
+    return JSONResponse(content=jsonable_encoder({"reviews": reviews}))
 
 # Optional: quick stats for dashboard tiles
 @app.get("/stats")

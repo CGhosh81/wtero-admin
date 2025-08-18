@@ -15,7 +15,8 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     # Default all users to "admin" role unless stored differently
-    role = user.get("role", "admin")
+    # role = user.get("role", "admin")
+    role = user.get("role", "user")
 
     # Create JWT token
     token = create_access_token({"sub": user["username"], "role": role})
