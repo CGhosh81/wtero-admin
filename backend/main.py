@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-
+from pathlib import Path  # Import Path
 from backend.database import init_db
 from backend import auth
 from backend.routes import users, reviews, products
@@ -11,6 +11,13 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi.responses import RedirectResponse
 import json
+
+# --- Path Configuration for Vercel ---
+# This ensures your app can find the frontend files in a deployment environment
+BASE_DIR = Path(__file__).resolve().parent.parent
+STATIC_DIR = BASE_DIR / "frontend/static"
+TEMPLATES_DIR = BASE_DIR / "frontend/templates"
+# ------------------------------------
 
 app = FastAPI(title="Wtero Admin Panel (FastAPI + MongoDB)")
 
@@ -30,8 +37,9 @@ app.include_router(reviews.router, tags=["reviews"])
 app.include_router(products.router, tags=["products"])
 
 # ---- UI (templates + static) ----
-app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
-templates = Jinja2Templates(directory="frontend/templates")
+# Use the robust, absolute paths defined above
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 @app.get("/")
 async def root():
