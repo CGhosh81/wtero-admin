@@ -1,27 +1,23 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from pathlib import Path  # Import Path
-from backend.database import init_db
+from pathlib import Path
+from backend.database import init_db, get_db
 from backend import auth
 from backend.routes import users, reviews, products
-from backend.database import db
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi.responses import RedirectResponse
 import json
+from motor.motor_asyncio import AsyncIOMotorClient
 
-# --- Path Configuration for Vercel ---
-# This ensures your app can find the frontend files in a deployment environment
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "frontend/static"
 TEMPLATES_DIR = BASE_DIR / "frontend/templates"
-# ------------------------------------
 
 app = FastAPI(title="Wtero Admin Panel (FastAPI + MongoDB)")
 
-# CORS (tighten for prod)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -30,22 +26,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API routers
 app.include_router(auth.router, tags=["auth"])
 app.include_router(users.router, tags=["users"])
 app.include_router(reviews.router, tags=["reviews"])
 app.include_router(products.router, tags=["products"])
 
-# ---- UI (templates + static) ----
-# Use the robust, absolute paths defined above
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 @app.get("/")
 async def root():
-    # redirect to /ui/login from the browser (or just open it manually)
     return RedirectResponse(url="/ui/login")
-    # return {"msg": "Wtero Admin API. Visit /ui/login for the admin UI."}
 
 @app.get("/ui/login")
 async def ui_login(request: Request):
@@ -68,20 +59,19 @@ async def ui_users(request: Request):
     return templates.TemplateResponse("users.html", {"request": request})
 
 @app.get("/api/products")
-async def api_products():
+async def api_products(db: AsyncIOMotorClient = Depends(get_db)):
     products_cursor = db["products"].find({}, {"_id": 0})
     products = await products_cursor.to_list(length=1000)
     return JSONResponse(content=jsonable_encoder({"products": products}))
 
 @app.get("/api/reviews")
-async def api_reviews():
+async def api_reviews(db: AsyncIOMotorClient = Depends(get_db)):
     reviews_cursor = db["reviews"].find({}, {"_id": 0})
     reviews = await reviews_cursor.to_list(length=1000)
     return JSONResponse(content=jsonable_encoder({"reviews": reviews}))
 
-# Optional: quick stats for dashboard tiles
 @app.get("/stats")
-async def stats():
+async def stats(db: AsyncIOMotorClient = Depends(get_db)):
     products_count = await db["products"].count_documents({})
     reviews_count = await db["reviews"].count_documents({})
     users_count = await db["users"].count_documents({})
