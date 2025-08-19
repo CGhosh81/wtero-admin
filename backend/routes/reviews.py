@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query
@@ -10,6 +10,21 @@ from motor.motor_asyncio import AsyncIOMotorClient
 
 router = APIRouter()
 
+# --- Helpers ---
+async def get_object_or_404(db, review_id: str):
+    """Helper to validate ObjectId and fetch a review or raise 404"""
+    try:
+        _id = ObjectId(review_id)
+    except:
+        raise HTTPException(status_code=400, detail="Invalid id")
+
+    doc = await db["reviews"].find_one({"_id": _id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Not found")
+    return _id, doc
+
+
+# --- Create ---
 @router.post("/reviews")
 async def create_review_form(
     name: str = Form(...),
@@ -19,44 +34,65 @@ async def create_review_form(
     text: str = Form(...),
     avatar: Optional[UploadFile] = File(None),
     current=Depends(get_current_user),
-    db: AsyncIOMotorClient = Depends(get_db)
+    db: AsyncIOMotorClient = Depends(get_db),
 ):
-    avatar_b64 = to_base64(await avatar.read()) if avatar and avatar.filename else None
+    avatar_b64 = None
+    if avatar and avatar.filename:
+        avatar_b64 = to_base64(await avatar.read())
+
     doc = {
-        "name": name, "company": company, "role": role, "rating": int(rating),
-        "text": text, "avatar": avatar_b64, "createdAt": datetime.utcnow()
+        "name": name,
+        "company": company,
+        "role": role,
+        "rating": int(rating),
+        "text": text,
+        "avatar": avatar_b64,
+        "createdAt": datetime.utcnow(),
     }
     res = await db["reviews"].insert_one(doc)
     return {"id": str(res.inserted_id)}
 
+
 @router.post("/reviews/json")
-async def create_review_json(payload: ReviewIn, current=Depends(get_current_user), db: AsyncIOMotorClient = Depends(get_db)):
-    doc = payload.dict()
-    doc["createdAt"] = datetime.utcnow()
+async def create_review_json(
+    payload: ReviewIn,
+    current=Depends(get_current_user),
+    db: AsyncIOMotorClient = Depends(get_db),
+):
+    doc = {**payload.dict(), "createdAt": datetime.utcnow()}
     res = await db["reviews"].insert_one(doc)
     return {"id": str(res.inserted_id)}
 
+
+# --- Read ---
 @router.get("/reviews")
 async def list_reviews(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     current=Depends(get_current_user),
-    db: AsyncIOMotorClient = Depends(get_db)
+    db: AsyncIOMotorClient = Depends(get_db),
 ):
-    cursor = db["reviews"].find().skip(skip).limit(limit).sort("createdAt", -1)
+    cursor = (
+        db["reviews"]
+        .find({}, {"_id": 1, "name": 1, "company": 1, "role": 1, "rating": 1, "text": 1, "avatar": 1, "createdAt": 1})
+        .skip(skip)
+        .limit(limit)
+        .sort("createdAt", -1)
+    )
     return [serialize_doc(r) for r in await cursor.to_list(length=limit)]
 
+
 @router.get("/reviews/{review_id}")
-async def get_review(review_id: str, current=Depends(get_current_user), db: AsyncIOMotorClient = Depends(get_db)):
-    try:
-        _id = ObjectId(review_id)
-    except:
-        raise HTTPException(status_code=400, detail="Invalid id")
-    doc = await db["reviews"].find_one({"_id": _id})
-    if not doc:
-        raise HTTPException(status_code=404, detail="Not found")
+async def get_review(
+    review_id: str,
+    current=Depends(get_current_user),
+    db: AsyncIOMotorClient = Depends(get_db),
+):
+    _, doc = await get_object_or_404(db, review_id)
     return serialize_doc(doc)
 
+
+# --- Update ---
 @router.put("/reviews/{review_id}")
 async def update_review_form(
     review_id: str,
@@ -67,46 +103,46 @@ async def update_review_form(
     text: Optional[str] = Form(None),
     avatar: Optional[UploadFile] = File(None),
     current=Depends(get_current_user),
-    db: AsyncIOMotorClient = Depends(get_db)
+    db: AsyncIOMotorClient = Depends(get_db),
 ):
-    try:
-        _id = ObjectId(review_id)
-    except:
-        raise HTTPException(status_code=400, detail="Invalid id")
-    update = {}
-    form_data = {"name": name, "company": company, "role": role, "rating": rating, "text": text}
-    for k, v in form_data.items():
-        if v is not None:
-            update[k] = v
+    _id, _ = await get_object_or_404(db, review_id)
+
+    update = {k: v for k, v in {"name": name, "company": company, "role": role, "rating": rating, "text": text}.items() if v is not None}
     if avatar and avatar.filename:
         update["avatar"] = to_base64(await avatar.read())
+
     if not update:
         raise HTTPException(status_code=400, detail="Nothing to update")
-    res = await db["reviews"].update_one({"_id": _id}, {"$set": update})
-    if res.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Not found")
+
+    await db["reviews"].update_one({"_id": _id}, {"$set": update})
     return {"msg": "Updated"}
 
+
 @router.put("/reviews/{review_id}/json")
-async def update_review_json(review_id: str, payload: ReviewUpdate, current=Depends(get_current_user), db: AsyncIOMotorClient = Depends(get_db)):
-    try:
-        _id = ObjectId(review_id)
-    except:
-        raise HTTPException(status_code=400, detail="Invalid id")
+async def update_review_json(
+    review_id: str,
+    payload: ReviewUpdate,
+    current=Depends(get_current_user),
+    db: AsyncIOMotorClient = Depends(get_db),
+):
+    _id, _ = await get_object_or_404(db, review_id)
+
     update = {k: v for k, v in payload.dict().items() if v is not None}
     if not update:
         raise HTTPException(status_code=400, detail="Nothing to update")
-    res = await db["reviews"].update_one({"_id": _id}, {"$set": update})
-    if res.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Not found")
+
+    await db["reviews"].update_one({"_id": _id}, {"$set": update})
     return {"msg": "Updated"}
 
+
+# --- Delete ---
 @router.delete("/reviews/{review_id}")
-async def delete_review(review_id: str, current=Depends(get_current_user), db: AsyncIOMotorClient = Depends(get_db)):
-    try:
-        _id = ObjectId(review_id)
-    except:
-        raise HTTPException(status_code=400, detail="Invalid id")
+async def delete_review(
+    review_id: str,
+    current=Depends(get_current_user),
+    db: AsyncIOMotorClient = Depends(get_db),
+):
+    _id, _ = await get_object_or_404(db, review_id)
     res = await db["reviews"].delete_one({"_id": _id})
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Not found")
