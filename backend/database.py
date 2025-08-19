@@ -13,7 +13,7 @@ db = None
 async def connect_to_db():
     """Initializes the database connection."""
     global client, db
-    MONGODB_URI = os.getenv("MONGODB_URI")
+    MONGODB_URI = os.getenv("MONGODB_URI","mongodb+srv://rijwanoolkarim143r:ftORa1mSLZQB7sN7@wtero-admin.rsvcl1t.mongodb.net/?retryWrites=true&w=majority&appName=wtero-admin")
     DB_NAME = os.getenv("DB_NAME", "wtero_admin")
     client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI)
     db = client[DB_NAME]
