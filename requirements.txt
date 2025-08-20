@@ -9,3 +9,4 @@ pydantic<2.0
 python-dotenv
 dnspython
 certifi
+bcrypt

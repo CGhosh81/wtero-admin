@@ -4,49 +4,55 @@ import motor.motor_asyncio
 from pymongo import ASCENDING
 from backend.utils import hash_password
 
+# Load .env file for local development
 load_dotenv()
 
+# --- CONFIGURATION ---
 MONGODB_URI = os.getenv("MONGODB_URI")
 DB_NAME = os.getenv("DB_NAME")
 
-_client = None
-_db = None
-
-def get_client():
-    """
-    Returns a cached MongoDB client.
-    If cold start, create one.
-    """
-    global _client, _db
-    if _client is None:
-        _client = motor.motor_asyncio.AsyncIOMotorClient(
-            MONGODB_URI,
-            maxPoolSize=10,
-            minPoolSize=1,
-            serverSelectionTimeoutMS=5000  # fail fast if DB unreachable
-        )
-        _db = _client[DB_NAME]
-    return _db
+# --- SINGLE, SHARED CLIENT INSTANCE (THE FAST WAY 🚀) ---
+# This client is created once when the application module is loaded.
+# It manages an internal connection pool that is shared and reused
+# across all requests, which is highly efficient.
+client = motor.motor_asyncio.AsyncIOMotorClient(
+    MONGODB_URI,
+    maxPoolSize=20,  # Increase pool size for better concurrency
+    minPoolSize=5,
+    # Add a timeout to prevent requests from hanging if the DB is unresponsive
+    serverSelectionTimeoutMS=5000 
+)
+# Get a reference to the database from the shared client
+db = client[DB_NAME]
 
 
 async def get_db():
     """
-    Dependency for FastAPI routes.
+    FastAPI dependency that provides the shared database instance.
+    It no longer creates or closes connections on its own.
     """
-    return get_client()
+    return db
 
 
 async def init_db():
     """
     Initializes indexes and seeds the database.
-    Run separately (locally or in a script), not on every request.
+    This should be run as a separate, standalone script.
     """
-    db = get_client()
-
     ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
     ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 
+    print("Connecting to the database for initialization...")
+    # It's good practice to confirm the connection before proceeding
+    try:
+        await client.admin.command('ping')
+        print("Database connection successful.")
+    except Exception as e:
+        print(f"Error: Could not connect to the database. {e}")
+        return # Exit if the connection fails
+
     print("Creating indexes...")
+    # Use the global 'db' object derived from the shared client
     await db["users"].create_index("username", unique=True)
     await db["reviews"].create_index([("createdAt", ASCENDING)])
     await db["products"].create_index("title", unique=True)
@@ -64,3 +70,7 @@ async def init_db():
             print("Admin user created.")
         else:
             print("Admin user already exists.")
+
+# To gracefully close the connection when your app shuts down,
+# you can add a shutdown event handler in your main FastAPI file.
+# This is optional but highly recommended for clean exits.
