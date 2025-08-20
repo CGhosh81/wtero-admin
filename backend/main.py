@@ -76,7 +76,3 @@ async def stats(db: AsyncIOMotorClient = Depends(get_db)):
     reviews_count = await db["reviews"].count_documents({})
     users_count = await db["users"].count_documents({})
     return {"products": products_count, "reviews": reviews_count, "users": users_count}
-
-@app.on_event("startup")
-async def on_startup():
-    await init_db()
