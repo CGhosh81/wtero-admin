@@ -9,27 +9,40 @@ load_dotenv()
 MONGODB_URI = os.getenv("MONGODB_URI")
 DB_NAME = os.getenv("DB_NAME")
 
-# --- GLOBAL CLIENT & DB ---
-client = motor.motor_asyncio.AsyncIOMotorClient(
-    MONGODB_URI,
-    maxPoolSize=10,  # tweak pool size as needed
-    minPoolSize=2
-)
-db = client[DB_NAME]
+_client = None
+_db = None
+
+def get_client():
+    """
+    Returns a cached MongoDB client.
+    If cold start, create one.
+    """
+    global _client, _db
+    if _client is None:
+        _client = motor.motor_asyncio.AsyncIOMotorClient(
+            MONGODB_URI,
+            maxPoolSize=10,
+            minPoolSize=1,
+            serverSelectionTimeoutMS=5000  # fail fast if DB unreachable
+        )
+        _db = _client[DB_NAME]
+    return _db
 
 
 async def get_db():
     """
-    Dependency that provides the shared DB instance.
+    Dependency for FastAPI routes.
     """
-    return db
+    return get_client()
 
 
 async def init_db():
     """
     Initializes indexes and seeds the database.
-    Run separately (not on every startup).
+    Run separately (locally or in a script), not on every request.
     """
+    db = get_client()
+
     ADMIN_USERNAME = os.getenv("ADMIN_USERNAME")
     ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD")
 
